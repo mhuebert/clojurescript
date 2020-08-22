@@ -7,38 +7,37 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns cljs.analyzer
-  #?(:clj  (:refer-clojure :exclude [macroexpand-1 ensure])
-     :cljs (:refer-clojure :exclude [macroexpand-1 ns-interns ensure js-reserved]))
-  #?(:cljs (:require-macros
-             [cljs.analyzer.macros
-              :refer [no-warn wrapping-errors with-warning-handlers
-                      disallowing-recur allowing-redef disallowing-ns*]]
+  #?(:clj  (:refer-clojure :exclude [ensure macroexpand-1])
+     :cljs (:refer-clojure :exclude [ensure js-reserved macroexpand-1 ns-interns]))
+  #?(:cljs (:require-macros [cljs.analyzer.macros
+                             :refer [allowing-redef disallowing-ns* disallowing-recur
+                                     no-warn with-warning-handlers wrapping-errors]]
              [cljs.env.macros :refer [ensure]]))
-  #?(:clj  (:require [cljs.util :as util :refer [ns->relpath topo-sort]]
-                     [clojure.java.io :as io]
-                     [clojure.string :as string]
-                     [clojure.set :as set]
-                     [cljs.env :as env :refer [ensure]]
+  #?(:clj  (:require [cljs.env :as env :refer [ensure]]
+                     [cljs.externs :as externs]
                      [cljs.js-deps :as deps]
                      [cljs.tagged-literals :as tags]
-                     [clojure.tools.reader :as reader]
-                     [clojure.tools.reader.reader-types :as readers]
+                     [cljs.util :as util :refer [ns->relpath topo-sort]]
                      [clojure.edn :as edn]
-                     [cljs.externs :as externs])
-     :cljs (:require [goog.string :as gstring]
-                     [clojure.string :as string]
+                     [clojure.java.io :as io]
                      [clojure.set :as set]
-                     [cljs.env :as env]
+                     [clojure.string :as string]
+                     [clojure.tools.reader :as reader]
+                     [clojure.tools.reader.reader-types :as readers])
+     :cljs (:require [cljs.env :as env]
+                     [cljs.reader :as edn]
                      [cljs.tagged-literals :as tags]
                      [cljs.tools.reader :as reader]
                      [cljs.tools.reader.reader-types :as readers]
-                     [cljs.reader :as edn]))
-  #?(:clj (:import [java.io File Reader PushbackReader]
-                   [java.util.regex Pattern]
-                   [java.net URL]
-                   [java.lang Throwable]
+                     [clojure.set :as set]
+                     [clojure.string :as string]
+                     [goog.string :as gstring]))
+  #?(:clj (:import [cljs.tagged_literals JSValue]
                    [clojure.lang Namespace Var LazySeq ArityException]
-                   [cljs.tagged_literals JSValue])))
+                   [java.io File Reader PushbackReader]
+                   [java.lang Throwable]
+                   [java.net URL]
+                   [java.util.regex Pattern])))
 
 #?(:clj (set! *warn-on-reflection* true))
 
