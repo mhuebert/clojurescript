@@ -1372,10 +1372,6 @@
 
 (declare infer-tag)
 
-(def NOT_NATIVE '#{clj not-native})
-
-(def BOOLEAN_OR_SEQ '#{boolean seq})
-
 (defn unwrap-quote [{:keys [op] :as expr}]
   (if #?(:clj (= op :quote)
          :cljs (keyword-identical? op :quote))
@@ -1399,12 +1395,12 @@
           #?(:clj (= then-tag impl/IGNORE_SYM)
              :cljs (symbol-identical? then-tag impl/IGNORE_SYM)) else-tag
           ;; TODO: temporary until we move not-native -> clj - David
-          (and (or (some? (get NOT_NATIVE then-tag)) (type? env then-tag))
-               (or (some? (get NOT_NATIVE else-tag)) (type? env else-tag)))
+          (and (or (some? (get impl/NOT_NATIVE then-tag)) (type? env then-tag))
+               (or (some? (get impl/NOT_NATIVE else-tag)) (type? env else-tag)))
           'clj
           :else
-          (if (and (some? (get BOOLEAN_OR_SEQ then-tag))
-                   (some? (get BOOLEAN_OR_SEQ else-tag)))
+          (if (and (some? (get impl/BOOLEAN_OR_SEQ then-tag))
+                   (some? (get impl/BOOLEAN_OR_SEQ else-tag)))
             'seq
             (let [then-tag (if #?(:clj (set? then-tag)
                                   :cljs (impl/cljs-set? then-tag))

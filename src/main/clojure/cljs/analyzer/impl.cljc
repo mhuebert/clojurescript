@@ -10,6 +10,8 @@
 
 (def ANY_SYM 'any)
 
+(def BOOLEAN_OR_SEQ '#{boolean seq})
+
 (def BOOLEAN_SYM 'boolean)
 
 #?(:cljs
@@ -31,6 +33,8 @@
 
 #?(:cljs
    (def NEW_SYM 'new))
+
+(def NOT_NATIVE '#{clj not-native})
 
 #?(:cljs
    (def NUMBER_SYM 'number))
