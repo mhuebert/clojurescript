@@ -12,7 +12,6 @@
   #?(:cljs (:require-macros [cljs.compiler.macros :refer [emit-wrap]]
                             [cljs.env.macros :refer [ensure]]))
   #?(:clj (:require [cljs.analyzer :as ana]
-                    [cljs.analyzer.impl :as ana.impl]
                     [cljs.env :as env :refer [ensure]]
                     [cljs.js-deps :as deps]
                     [cljs.source-map :as sm]
@@ -24,6 +23,7 @@
                     [clojure.string :as string]
                     [clojure.tools.reader :as reader])
      :cljs (:require [cljs.analyzer :as ana]
+                     [cljs.analyzer.impl :as ana.impl]
                      [cljs.env :as env]
                      [cljs.source-map :as sm]
                      [cljs.tools.reader :as reader]
