@@ -13,7 +13,8 @@
                              :refer [allowing-redef disallowing-ns* disallowing-recur
                                      no-warn with-warning-handlers wrapping-errors]]
              [cljs.env.macros :refer [ensure]]))
-  #?(:clj  (:require [cljs.env :as env :refer [ensure]]
+  #?(:clj  (:require [cljs.analyzer.impl :as impl]
+                     [cljs.env :as env :refer [ensure]]
                      [cljs.externs :as externs]
                      [cljs.js-deps :as deps]
                      [cljs.tagged-literals :as tags]
@@ -24,7 +25,8 @@
                      [clojure.string :as string]
                      [clojure.tools.reader :as reader]
                      [clojure.tools.reader.reader-types :as readers])
-     :cljs (:require [cljs.env :as env]
+     :cljs (:require [cljs.analyzer.impl :as impl]
+                     [cljs.env :as env]
                      [cljs.reader :as edn]
                      [cljs.tagged-literals :as tags]
                      [cljs.tools.reader :as reader]
@@ -218,36 +220,6 @@
            (let [m (get m k2 SENTINEL)]
              (when-not (identical? m SENTINEL)
                (get m k3)))))))))
-
-#?(:cljs
-   (def CLJ_NIL_SYM 'clj-nil))
-
-#?(:cljs
-   (def NUMBER_SYM 'number))
-
-#?(:cljs
-   (def STRING_SYM 'string))
-
-(def BOOLEAN_SYM 'boolean)
-
-#?(:cljs
-   (def JS_STAR_SYM 'js*))
-
-#?(:cljs
-   (def DOT_SYM '.))
-
-#?(:cljs
-   (def NEW_SYM 'new))
-
-#?(:cljs
-   (def CLJS_CORE_SYM 'cljs.core))
-
-#?(:cljs
-   (def CLJS_CORE_MACROS_SYM 'cljs.core$macros))
-
-(def IGNORE_SYM 'ignore)
-
-(def ANY_SYM 'any)
 
 #?(:cljs
    (defn ^boolean cljs-seq? [x]
@@ -1347,7 +1319,7 @@
       (let [ns (cond
                  (some? (get-in namespaces [ns :macros sym])) ns
                  (core-name? env sym) #?(:clj  'cljs.core
-                                         :cljs CLJS_CORE_MACROS_SYM))]
+                                         :cljs impl/CLJS_CORE_MACROS_SYM))]
         (when (some? ns)
           #?(:clj  (get-in namespaces [ns :macros sym])
              :cljs (get-in namespaces [ns :defs sym])))))))
@@ -1438,10 +1410,10 @@
         (cond
           (or #?(:clj (= then-tag else-tag)
                  :cljs (symbol-identical? then-tag else-tag))
-              #?(:clj (= else-tag IGNORE_SYM)
-                 :cljs (symbol-identical? else-tag IGNORE_SYM))) then-tag
-          #?(:clj (= then-tag IGNORE_SYM)
-             :cljs (symbol-identical? then-tag IGNORE_SYM)) else-tag
+              #?(:clj (= else-tag impl/IGNORE_SYM)
+                 :cljs (symbol-identical? else-tag impl/IGNORE_SYM))) then-tag
+          #?(:clj (= then-tag impl/IGNORE_SYM)
+             :cljs (symbol-identical? then-tag impl/IGNORE_SYM)) else-tag
           ;; TODO: temporary until we move not-native -> clj - David
           (and (or (some? (get NOT_NATIVE then-tag)) (type? env then-tag))
                (or (some? (get NOT_NATIVE else-tag)) (type? env else-tag)))
@@ -1468,7 +1440,7 @@
                             (:ret-tag info)
                             (when (= 'js (:ns info)) 'js))]
           ret-tag
-          ANY_SYM)))))
+          impl/ANY_SYM)))))
 
 (defn infer-tag
   "Given env, an analysis environment, and e, an AST node, return the inferred
@@ -1477,8 +1449,8 @@
     (if-some [tag (get-tag e)]
       tag
       (case (:op e)
-        :recur    IGNORE_SYM
-        :throw    IGNORE_SYM
+        :recur    impl/IGNORE_SYM
+        :throw    impl/IGNORE_SYM
         :let      (infer-tag env (:body e))
         :loop     (infer-tag env (:body e))
         :do       (infer-tag env (:ret e))
@@ -1487,16 +1459,17 @@
         :invoke   (infer-invoke env e)
         :if       (infer-if env e)
         :const    (case (:form e)
-                    true BOOLEAN_SYM
-                    false BOOLEAN_SYM
-                    ANY_SYM)
+                    true impl/BOOLEAN_SYM
+                    false impl/BOOLEAN_SYM
+                    impl/ANY_SYM)
         :quote    (infer-tag env (:expr e))
         (:var :local :js-var :binding)
                   (if-some [init (:init e)]
                     (infer-tag env init)
                     (infer-tag env (:info e)))
-        (:host-field :host-call)      ANY_SYM
-        :js       ANY_SYM
+        (:host-field :host-call)
+                  impl/ANY_SYM
+        :js       impl/ANY_SYM
         nil)))
 
 (defmulti parse (fn [op & rest] op))
@@ -1939,7 +1912,7 @@
           tag (cond
                 fn-var? (or (:ret-tag init-expr) tag (:inferred-ret-tag init-expr))
                 tag tag
-                dynamic ANY_SYM
+                dynamic impl/ANY_SYM
                 :else (:tag init-expr))
           export-as (when-let [export-val (-> sym meta :export)]
                       (if (= true export-val) var-name export-val))
@@ -3836,7 +3809,7 @@
         nstr (if (some? res) (str res) nstr)]
     (cond
      #?@(:clj  [(= "clojure.core" nstr) (find-ns 'cljs.core)]
-         :cljs [(identical? "clojure.core" nstr) (find-macros-ns CLJS_CORE_MACROS_SYM)])
+         :cljs [(identical? "clojure.core" nstr) (find-macros-ns impl/CLJS_CORE_MACROS_SYM)])
      #?@(:clj  [(= "clojure.repl" nstr) (find-ns 'cljs.repl)]
          :cljs [(identical? "clojure.repl" nstr) (find-macros-ns 'cljs.repl)])
      #?@(:clj  [(.contains nstr ".") (find-ns (symbol nstr))]
@@ -3867,7 +3840,7 @@
             (.findInternedVar ^clojure.lang.Namespace
               #?(:clj (find-ns nsym) :cljs (find-macros-ns nsym)) sym)
             (.findInternedVar ^clojure.lang.Namespace
-              #?(:clj (find-ns 'cljs.core) :cljs (find-macros-ns CLJS_CORE_MACROS_SYM)) sym)))))))
+              #?(:clj (find-ns 'cljs.core) :cljs (find-macros-ns impl/CLJS_CORE_MACROS_SYM)) sym)))))))
 
 (defn get-expander
   "Given a sym, a symbol identifying a macro, and env, an analysis environment
@@ -3936,7 +3909,7 @@
                 (let [sym' (first form')
                       sym  (first form)]
                   (if #?(:clj  (= sym' 'js*)
-                         :cljs (symbol-identical? sym' JS_STAR_SYM))
+                         :cljs (symbol-identical? sym' impl/JS_STAR_SYM))
                     (let [sym   (if (some? (namespace sym))
                                   sym
                                   (symbol "cljs.core" (str sym)))
@@ -3959,14 +3932,14 @@
                   #?(:clj  (first opname)
                      :cljs (.charAt opname 0)))
                 (let [[target & args] (next form)]
-                  (with-meta (list* #?(:clj '. :cljs DOT_SYM) target (symbol (subs opname 1)) args)
+                  (with-meta (list* #?(:clj '. :cljs impl/DOT_SYM) target (symbol (subs opname 1)) args)
                     (meta form)))
 
                 (identical? \.
                   #?(:clj  (last opname)
                      :cljs (.charAt opname (dec (. opname -length)))))
                 (with-meta
-                  (list* #?(:clj 'new :cljs NEW_SYM) (symbol (subs opname 0 (dec (count opname)))) (next form))
+                  (list* #?(:clj 'new :cljs impl/NEW_SYM) (symbol (subs opname 0 (dec (count opname)))) (next form))
                   (meta form))
 
                 :else form))
@@ -4230,11 +4203,11 @@
        (instance? cljs.tagged-literals/JSValue form) (analyze-js-value env form)
        :else
        (let [tag (cond
-                   (nil? form) CLJ_NIL_SYM
-                   (number? form) NUMBER_SYM
-                   (string? form) STRING_SYM
-                   (true? form) BOOLEAN_SYM
-                   (false? form) BOOLEAN_SYM
+                   (nil? form) impl/CLJ_NIL_SYM
+                   (number? form) impl/NUMBER_SYM
+                   (string? form) impl/STRING_SYM
+                   (true? form) impl/BOOLEAN_SYM
+                   (false? form) impl/BOOLEAN_SYM
                    (= () form) 'cljs.core/IList)]
          (cond-> {:op :const :val form :env env :form form}
            tag (assoc :tag tag))))))
