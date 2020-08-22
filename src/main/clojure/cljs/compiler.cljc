@@ -7,33 +7,34 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns cljs.compiler
-  #?(:clj (:refer-clojure :exclude [munge macroexpand-1 ensure])
-     :cljs (:refer-clojure :exclude [munge macroexpand-1 ensure js-reserved]))
+  #?(:clj (:refer-clojure :exclude [ensure macroexpand-1 munge])
+     :cljs (:refer-clojure :exclude [ensure js-reserved macroexpand-1 munge]))
   #?(:cljs (:require-macros [cljs.compiler.macros :refer [emit-wrap]]
                             [cljs.env.macros :refer [ensure]]))
-  #?(:clj (:require [cljs.util :as util]
-                    [clojure.java.io :as io]
-                    [clojure.string :as string]
-                    [clojure.set :as set]
-                    [clojure.tools.reader :as reader]
+  #?(:clj (:require [cljs.analyzer :as ana]
+                    [cljs.analyzer.impl :as ana.impl]
                     [cljs.env :as env :refer [ensure]]
-                    [cljs.tagged-literals :as tags]
-                    [cljs.analyzer :as ana]
+                    [cljs.js-deps :as deps]
                     [cljs.source-map :as sm]
+                    [cljs.tagged-literals :as tags]
+                    [cljs.util :as util]
                     [clojure.data.json :as json]
-                    [cljs.js-deps :as deps])
-     :cljs (:require [goog.string :as gstring]
-                     [clojure.string :as string]
-                     [clojure.set :as set]
-                     [cljs.tools.reader :as reader]
+                    [clojure.java.io :as io]
+                    [clojure.set :as set]
+                    [clojure.string :as string]
+                    [clojure.tools.reader :as reader])
+     :cljs (:require [cljs.analyzer :as ana]
                      [cljs.env :as env]
-                     [cljs.analyzer :as ana]
-                     [cljs.source-map :as sm]))
-  #?(:clj (:import java.lang.StringBuilder
+                     [cljs.source-map :as sm]
+                     [cljs.tools.reader :as reader]
+                     [clojure.set :as set]
+                     [clojure.string :as string]
+                     [goog.string :as gstring]))
+  #?(:clj (:import [cljs.tagged_literals JSValue]
+                   java.lang.StringBuilder
                    [java.io File Writer]
                    [java.util.concurrent Executors ExecutorService TimeUnit]
-                   [java.util.concurrent.atomic AtomicLong]
-                   [cljs.tagged_literals JSValue])
+                   [java.util.concurrent.atomic AtomicLong])
      :cljs (:import [goog.string StringBuffer])))
 
 #?(:clj (set! *warn-on-reflection* true))
