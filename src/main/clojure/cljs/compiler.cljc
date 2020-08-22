@@ -113,7 +113,7 @@
   ([s] (munge s js-reserved))
   ([s reserved]
    (if #?(:clj  (map? s)
-          :cljs (ana/cljs-map? s))
+          :cljs (ana.impl/cljs-map? s))
      (let [name-var s
            name     (:name name-var)
            field    (:field name-var)
@@ -207,8 +207,8 @@
   ([^Object a]
    (cond
      (nil? a) nil
-     #?(:clj (map? a) :cljs (ana/cljs-map? a)) (emit a)
-     #?(:clj (seq? a) :cljs (ana/cljs-seq? a)) (apply emits a)
+     #?(:clj (map? a) :cljs (ana.impl/cljs-map? a)) (emit a)
+     #?(:clj (seq? a) :cljs (ana.impl/cljs-seq? a)) (apply emits a)
      #?(:clj (fn? a) :cljs ^boolean (goog/isFunction a)) (a)
      :else (let [^String s (cond-> a (not (string? a)) .toString)]
              #?(:clj  (when-some [^AtomicLong gen-col *source-map-data-gen-col*]
@@ -285,12 +285,12 @@
    :cljs
    (defn emit-constant-no-meta [x]
      (cond
-       (ana/cljs-seq? x) (emit-list x emit-constants-comma-sep)
+       (ana.impl/cljs-seq? x) (emit-list x emit-constants-comma-sep)
        (record? x) (let [[ns name] (ana/record-ns+name x)]
                      (emit-record-value ns name #(emit-constant (into {} x))))
-       (ana/cljs-map? x) (emit-map (keys x) (vals x) emit-constants-comma-sep all-distinct?)
-       (ana/cljs-vector? x) (emit-vector x emit-constants-comma-sep)
-       (ana/cljs-set? x) (emit-set x emit-constants-comma-sep all-distinct?)
+       (ana.impl/cljs-map? x) (emit-map (keys x) (vals x) emit-constants-comma-sep all-distinct?)
+       (ana.impl/cljs-vector? x) (emit-vector x emit-constants-comma-sep)
+       (ana.impl/cljs-set? x) (emit-set x emit-constants-comma-sep all-distinct?)
        :else (emit-constant* x))))
 
 (defn emit-constant [v]

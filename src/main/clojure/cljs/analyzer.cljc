@@ -222,22 +222,6 @@
                (get m k3)))))))))
 
 #?(:cljs
-   (defn ^boolean cljs-seq? [x]
-     (implements? ISeq x)))
-
-#?(:cljs
-   (defn ^boolean cljs-map? [x]
-     (implements? IMap x)))
-
-#?(:cljs
-   (defn ^boolean cljs-vector? [x]
-     (implements? IVector x)))
-
-#?(:cljs
-   (defn ^boolean cljs-set? [x]
-     (implements? ISet x)))
-
-#?(:cljs
    (defn munge-path [ss]
      (munge (str ss))))
 
@@ -921,7 +905,7 @@
   "Ensures that a type tag is a set."
   [t]
   (if #?(:clj  (set? t)
-         :cljs (cljs-set? t))
+         :cljs (impl/cljs-set? t))
     t
     #{t}))
 
@@ -1423,10 +1407,10 @@
                    (some? (get BOOLEAN_OR_SEQ else-tag)))
             'seq
             (let [then-tag (if #?(:clj (set? then-tag)
-                                  :cljs (cljs-set? then-tag))
+                                  :cljs (impl/cljs-set? then-tag))
                              then-tag #{then-tag})
                   else-tag (if #?(:clj (set? else-tag)
-                                  :cljs (cljs-set? else-tag))
+                                  :cljs (impl/cljs-set? else-tag))
                              else-tag #{else-tag})]
               (into then-tag else-tag))))))))
 
@@ -3499,7 +3483,7 @@
     (if (and (symbol? t) (some? (get NUMERIC_SET t)))
       true
       (when #?(:clj  (set? t)
-               :cljs (cljs-set? t))
+               :cljs (impl/cljs-set? t))
         (or (contains? t 'number)
             (contains? t 'long)
             (contains? t 'double)
@@ -3522,7 +3506,7 @@
     :else
     (boolean
       (when #?(:clj  (set? t)
-               :cljs (cljs-set? t))
+               :cljs (impl/cljs-set? t))
         (or (contains? t 'any)
             (contains? t 'js)
             (some array-types t))))))
@@ -3905,7 +3889,7 @@
                                     (throw (ArityException. (- (.actual e) 2) (.name e)))))
                           (catch #?(:clj Throwable :cljs :default) e
                             (throw (ex-info nil (error-data env :macroexpansion (var->sym mac-var)) e))))]
-              (if #?(:clj (seq? form') :cljs (cljs-seq? form'))
+              (if #?(:clj (seq? form') :cljs (impl/cljs-seq? form'))
                 (let [sym' (first form')
                       sym  (first form)]
                   (if #?(:clj  (= sym' 'js*)
@@ -4194,11 +4178,11 @@
    (defn analyze-form [env form name opts]
      (cond
        (symbol? form) (analyze-symbol env form)
-       (and (cljs-seq? form) (some? (seq form))) (analyze-seq env form name opts)
+       (and (impl/cljs-seq? form) (some? (seq form))) (analyze-seq env form name opts)
        (record? form) (analyze-record env form)
-       (cljs-map? form) (analyze-map env form)
-       (cljs-vector? form) (analyze-vector env form)
-       (cljs-set? form) (analyze-set env form)
+       (impl/cljs-map? form) (analyze-map env form)
+       (impl/cljs-vector? form) (analyze-vector env form)
+       (impl/cljs-set? form) (analyze-set env form)
        (keyword? form) (analyze-keyword env form)
        (instance? cljs.tagged-literals/JSValue form) (analyze-js-value env form)
        :else
