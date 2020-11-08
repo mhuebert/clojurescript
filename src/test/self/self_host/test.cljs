@@ -39,18 +39,20 @@
     (js/eval source)))
 
 (def libs
-  {'bootstrap-test.core :cljs
-   'bootstrap-test.macros :clj
-   'bootstrap-test.helper :clj
-   'bootstrap-test.macros-2 :cljc
-   'bootstrap-test.wrap-1 :cljc
-   'bootstrap-test.wrap-2 :cljc
-   'bootstrap-test.wrap-3 :cljc})
+  {'bootstrap-test.core [:cljs]
+   'bootstrap-test.macros [:clj]
+   'bootstrap-test.helper [:clj]
+   'bootstrap-test.macros-2 [:cljc]
+   'bootstrap-test.wrap-1 [:cljc]
+   'bootstrap-test.wrap-2 [:cljc]
+   'bootstrap-test.wrap-3 [:cljc]
+   'bootstrap-test.wrap-4 [:cljs :cljc]})
 
-(defn node-load [{:keys [name macros]} cb]
+(defn node-load [{:as x :keys [name macros]} cb]
   (if (contains? libs name)
     (let [path (str "src/test/self/" (cljs/ns->relpath name)
-                    "." (cljs.core/name (get libs name)))]
+                    "." (cljs.core/name (some (if macros #{:clj :cljc}
+                                                         #{:cljs :cljc :clj}) (get libs name))))]
       (.readFile fs path "utf-8"
         (fn [err src]
           (cb (if-not err
@@ -846,7 +848,7 @@
 
 (deftest test-eval-str-with-transitive-macro-deps
   (async done
-    (let [l (latch 3 done)]
+    (let [l (latch 4 done)]
 
       ;; testing macro namespaces that require other macro namespaces
 
@@ -878,6 +880,16 @@
         (fn [{:keys [value error]}]
           (is (nil? error))
           (is (= [:wrap-3 :x] value))
+          (inc! l)))
+
+      (cljs/eval-str st
+        "(ns foo.bar-4 (:require-macros [bootstrap-test.macros-2 :as m2]))\n(m2/wrap-4 :x)"
+        nil
+        {:eval node-eval
+         :load node-load}
+        (fn [{:keys [value error]}]
+          (is (nil? error))
+          (is (= [:wrap-4 :x] value))
           (inc! l))))))
 
 (deftest test-eval-str-with-require
