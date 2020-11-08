@@ -1,8 +1,10 @@
 (ns bootstrap-test.macros-2
   (:require [bootstrap-test.wrap-1 :as wrap-1]
             [bootstrap-test.wrap-3 :as wrap-3]
-            [bootstrap-test.wrap-4 :as wrap-4])
-  (:require-macros [bootstrap-test.wrap-2 :as wrap-2]))
+            [bootstrap-test.wrap-4 :as wrap-4]
+            #?(:clj [bootstrap-test.wrap-2 :as wrap-2]))
+  #?(:cljs (:require-macros bootstrap-test.macros-2
+                            [bootstrap-test.wrap-2 :as wrap-2])))
 
 (defmacro wrap-1 [expr]
   ;; fails because bootstrap-test.wrap-1 does not self-require

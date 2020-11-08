@@ -46,7 +46,8 @@
    'bootstrap-test.wrap-1 [:cljc]
    'bootstrap-test.wrap-2 [:cljc]
    'bootstrap-test.wrap-3 [:cljc]
-   'bootstrap-test.wrap-4 [:cljs :cljc]})
+   'bootstrap-test.wrap-4 [:cljs :cljc]
+   'bootstrap-test.macros-3 [:cljs :cljc]})
 
 (defn node-load [{:as x :keys [name macros]} cb]
   (if (contains? libs name)
@@ -848,12 +849,12 @@
 
 (deftest test-eval-str-with-transitive-macro-deps
   (async done
-    (let [l (latch 4 done)]
+    (let [l (latch 5 done)]
 
       ;; testing macro namespaces that require other macro namespaces
 
       (cljs/eval-str st
-        "(ns foo.bar-1 (:require-macros [bootstrap-test.macros-2 :as m2]))\n(m2/wrap-1 :x)"
+        "(ns foo.bar-1 (:require [bootstrap-test.macros-2 :as m2]))\n(m2/wrap-1 :x)"
         nil
         {:eval node-eval
          :load node-load}
@@ -863,7 +864,7 @@
           (inc! l)))
 
       (cljs/eval-str st
-        "(ns foo.bar-2 (:require-macros [bootstrap-test.macros-2 :as m2]))\n(m2/wrap-2 :x)"
+        "(ns foo.bar-2 (:require [bootstrap-test.macros-2 :as m2]))\n(m2/wrap-2 :x)"
         nil
         {:eval node-eval
          :load node-load}
@@ -873,7 +874,7 @@
           (inc! l)))
 
       (cljs/eval-str st
-        "(ns foo.bar-3 (:require-macros [bootstrap-test.macros-2 :as m2]))\n(m2/wrap-3 :x)"
+        "(ns foo.bar-3 (:require [bootstrap-test.macros-2 :as m2]))\n(m2/wrap-3 :x)"
         nil
         {:eval node-eval
          :load node-load}
@@ -883,13 +884,23 @@
           (inc! l)))
 
       (cljs/eval-str st
-        "(ns foo.bar-4 (:require-macros [bootstrap-test.macros-2 :as m2]))\n(m2/wrap-4 :x)"
+        "(ns foo.bar-4 (:require [bootstrap-test.macros-2 :as m2]))\n(m2/wrap-4 :x)"
         nil
         {:eval node-eval
          :load node-load}
         (fn [{:keys [value error]}]
           (is (nil? error))
           (is (= [:wrap-4 :x] value))
+          (inc! l)))
+
+      (cljs/eval-str st
+        "(ns foo.bar-5 (:require [bootstrap-test.macros-3 :as m3]))\n(m3/wrap-3 :x)"
+        nil
+        {:eval node-eval
+         :load node-load}
+        (fn [{:keys [value error]}]
+          (is (nil? error))
+          (is (= [:wrap-3 :x] value))
           (inc! l))))))
 
 (deftest test-eval-str-with-require
