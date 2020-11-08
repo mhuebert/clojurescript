@@ -847,61 +847,49 @@
         (str-evals-to st l [1 1 1 1 1]
           "(let [an-array (int-array 5 0)] (js->clj (amap an-array idx ret (+ 1 (aget an-array idx)))))" {:ns 'foo.core})))))
 
-(deftest test-eval-str-with-transitive-macro-deps
+(defn async-eval-str [source cb]
   (async done
-    (let [l (latch 5 done)]
+    (cljs/eval-str st
+      source
+      nil
+      {:eval node-eval
+       :load node-load}
+      (fn [result]
+        (cb result)
+        (done)))))
 
-      ;; testing macro namespaces that require other macro namespaces
+(deftest cljc-macros-without-self-require
+  (async-eval-str
+    "(ns foo.bar-1 (:require [bootstrap-test.macros-2 :as m2]))\n(m2/wrap-1 :x)"
+    (fn [{:keys [value error]}]
+      (is (= [nil [:wrap-1 :x]] [error value])
+          "A macro ns requiring a cljc namespace that does not self-require cannot use its macros"))))
 
-      (cljs/eval-str st
-        "(ns foo.bar-1 (:require [bootstrap-test.macros-2 :as m2]))\n(m2/wrap-1 :x)"
-        nil
-        {:eval node-eval
-         :load node-load}
-        (fn [{:keys [value error]}]
-          (is (nil? error))
-          (is (= [:wrap-1 :x] value))
-          (inc! l)))
+(deftest cljc-macros-with-require-macros
+  (async-eval-str
+    "(ns foo.bar-2 (:require [bootstrap-test.macros-2 :as m2]))\n(m2/wrap-2 :x)"
+    (fn [{:keys [value error]}]
+      (is (= [nil [:wrap-2 :x]] [error value])
+          "A macro ns using :require-macros to require a cljc macros namespace cannot resolve its macros
+           (even if that namespace self-requires)"))))
 
-      (cljs/eval-str st
-        "(ns foo.bar-2 (:require [bootstrap-test.macros-2 :as m2]))\n(m2/wrap-2 :x)"
-        nil
-        {:eval node-eval
-         :load node-load}
-        (fn [{:keys [value error]}]
-          (is (nil? error))
-          (is (= [:wrap-2 :x] value))
-          (inc! l)))
+(deftest cljc-macros-with-require-and-self-require
+  (async-eval-str
+    "(ns foo.bar-3 (:require [bootstrap-test.macros-2 :as m2]))\n(m2/wrap-3 :x)"
+    (fn [{:keys [value error]}]
+      (is (= [nil [:wrap-3 :x]] [error value])))))
 
-      (cljs/eval-str st
-        "(ns foo.bar-3 (:require [bootstrap-test.macros-2 :as m2]))\n(m2/wrap-3 :x)"
-        nil
-        {:eval node-eval
-         :load node-load}
-        (fn [{:keys [value error]}]
-          (is (nil? error))
-          (is (= [:wrap-3 :x] value))
-          (inc! l)))
+(deftest cljc-macros-requiring-cljs+cljc-ns
+  (async-eval-str
+    "(ns foo.bar-4 (:require [bootstrap-test.macros-2 :as m2]))\n(m2/wrap-4 :x)"
+    (fn [{:keys [value error]}]
+      (is (= [nil [:wrap-4 :x]] [error value])))))
 
-      (cljs/eval-str st
-        "(ns foo.bar-4 (:require [bootstrap-test.macros-2 :as m2]))\n(m2/wrap-4 :x)"
-        nil
-        {:eval node-eval
-         :load node-load}
-        (fn [{:keys [value error]}]
-          (is (nil? error))
-          (is (= [:wrap-4 :x] value))
-          (inc! l)))
-
-      (cljs/eval-str st
-        "(ns foo.bar-5 (:require [bootstrap-test.macros-3 :as m3]))\n(m3/wrap-3 :x)"
-        nil
-        {:eval node-eval
-         :load node-load}
-        (fn [{:keys [value error]}]
-          (is (nil? error))
-          (is (= [:wrap-3 :x] value))
-          (inc! l))))))
+(deftest cljc-macros-requiring-cljs+cljc-ns-2
+  (async-eval-str
+    "(ns foo.bar-5 (:require [bootstrap-test.macros-3 :as m3]))\n(m3/wrap-3 :x)"
+    (fn [{:keys [value error]}]
+      (is (= [nil [:wrap-3 :x]] [error value])))))
 
 (deftest test-eval-str-with-require
   (async done
