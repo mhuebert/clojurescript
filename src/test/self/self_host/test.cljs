@@ -41,7 +41,7 @@
 (def libs
   {'bootstrap-test.core :cljs
    'bootstrap-test.macros :clj
-   'bootstrap-test.helper :clj})
+   'bootstrap-test.helper :cljc})
 
 (defn node-load [{:keys [name macros]} cb]
   (if (contains? libs name)
@@ -842,9 +842,9 @@
 
 (deftest test-eval-str-with-require
   (async done
-    (let [l (latch 3 done)]
+    (let [l (latch 4 done)]
       (cljs/eval-str st
-        "(ns foo.bar (:require [bootstrap-test.core]))\n(bootstrap-test.core/foo 3 4)"
+        "(ns foo.bar-1 (:require [bootstrap-test.core]))\n(bootstrap-test.core/foo 3 4)"
         nil
         {:eval node-eval
          :load node-load}
@@ -853,7 +853,7 @@
           (is (== 7 value))
           (inc! l)))
       (cljs/eval-str st
-        "(ns foo.bar (:require-macros [bootstrap-test.macros :refer [foo]]))\n(foo 4 4)"
+        "(ns foo.bar-2 (:require [bootstrap-test.helper :refer [multiply-fn]]))\n(ns foo.bar-2)\n(multiply-fn 4 4)"
         nil
         {:eval node-eval
          :load node-load}
@@ -862,7 +862,16 @@
           (is (== 16 value))
           (inc! l)))
       (cljs/eval-str st
-        "(ns foo.bar)\n(first [1 2 3])"
+        "(ns foo.bar-3 (:require-macros [bootstrap-test.macros :refer [foo]]))\n(ns foo.bar-3)\n(foo 4 4)"
+        nil
+        {:eval node-eval
+         :load node-load}
+        (fn [{:keys [error value]}]
+          (is (nil? error))
+          (is (== 16 value))
+          (inc! l)))
+      (cljs/eval-str st
+        "(ns foo.bar-4)\n(first [1 2 3])"
         nil
         {:eval node-eval
          :load node-load}

@@ -7,7 +7,7 @@
 ;; You must not remove this notice, or any other, from this software.
 
 (ns bootstrap-test.macros
-  (:require [bootstrap-test.helper :refer [bar]]))
+  (:require [bootstrap-test.helper :refer [multiply-form]]))
 
 (defmacro foo [a b]
-  (bar a b))
+  (multiply-form a b))

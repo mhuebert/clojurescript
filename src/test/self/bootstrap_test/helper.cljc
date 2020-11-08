@@ -8,5 +8,8 @@
 
 (ns bootstrap-test.helper)
 
-(defn bar [a b]
+(defn multiply-form [a b]
   `(* ~a ~b))
+
+(defn multiply-fn [a b]
+  (* a b))
