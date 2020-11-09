@@ -838,8 +838,12 @@
                         ns-name
                         (:def-emits-var opts))
                       (cb {:value (*eval-fn* {:source (.toString sb)})})))))
-              (let [src (with-out-str (comp/emit ast))]
-                (cb {:value (*eval-fn* {:source src})})))))))))
+              (let [src (with-out-str (comp/emit ast))
+                    res (try
+                          {:ns ns :value (*eval-fn* {:source src})}
+                          (catch :default cause
+                            (wrap-error (ana/error aenv "ERROR" cause))))]
+                (cb res)))))))))
 
 (defn eval
   "Evaluate a single ClojureScript form. The parameters:
