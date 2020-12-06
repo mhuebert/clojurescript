@@ -1,0 +1,55 @@
+diff --git a/src/main/cljs/cljs/js.cljs b/src/main/cljs/cljs/js.cljs
+index 0cf1716e..fb13e005 100644
+--- a/src/main/cljs/cljs/js.cljs
++++ b/src/main/cljs/cljs/js.cljs
+@@ -837,9 +837,15 @@
+                         (filter ana/dep-has-global-exports? (:deps ast))
+                         ns-name
+                         (:def-emits-var opts))
+-                      (cb {:value (*eval-fn* {:source (.toString sb)})})))))
++                      (cb (try
++                            {:ns ns-name :value (*eval-fn* {:source (.toString sb)})}
++                            (catch :default cause
++                              (wrap-error (ana/error aenv "ERROR" cause)))))))))
+               (let [src (with-out-str (comp/emit ast))]
+-                (cb {:value (*eval-fn* {:source src})})))))))))
++                (cb (try
++                      {:value (*eval-fn* {:source src})}
++                      (catch :default cause
++                        (wrap-error (ana/error aenv "ERROR" cause)))))))))))))
+ 
+ (defn eval
+   "Evaluate a single ClojureScript form. The parameters:
+diff --git a/src/test/self/self_host/test.cljs b/src/test/self/self_host/test.cljs
+index a42e12d5..f89b8df0 100644
+--- a/src/test/self/self_host/test.cljs
++++ b/src/test/self/self_host/test.cljs
+@@ -1557,6 +1557,28 @@
+                       (ex-message (ex-cause (ex-cause error)))))
+                 (inc! l)))))))))
+ 
++(deftest test-cljs-3287
++  (async done
++    (let [st (cljs/empty-state)
++          l (latch 2 done)]
++      (cljs/eval-str st
++                     "(throw (js/Error. \"eval error\"))"
++                     nil
++                     {:ns         'cljs.user
++                      :target     :nodejs
++                      :eval       node-eval}
++                     (fn [{:keys [error]}]
++                       (is (some? error))
++                       (inc! l)))
++      (cljs/eval st
++                 '(throw (js/Error. "eval error"))
++                 {:ns     'cljs.user
++                  :target :nodejs
++                  :eval   node-eval}
++                 (fn [{:keys [error]}]
++                   (is (some? error))
++                   (inc! l))))))
++
+ (defn -main [& args]
+   (run-tests))
+ 
