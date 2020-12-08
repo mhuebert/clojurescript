@@ -1,0 +1,52 @@
+diff --git a/src/main/cljs/cljs/js.cljs b/src/main/cljs/cljs/js.cljs
+index 0cf1716e..6fd75ff9 100644
+--- a/src/main/cljs/cljs/js.cljs
++++ b/src/main/cljs/cljs/js.cljs
+@@ -837,9 +837,9 @@
+                         (filter ana/dep-has-global-exports? (:deps ast))
+                         ns-name
+                         (:def-emits-var opts))
+-                      (cb {:value (*eval-fn* {:source (.toString sb)})})))))
++                      (cb {:value ((:*eval-fn* bound-vars) {:source (.toString sb)})})))))
+               (let [src (with-out-str (comp/emit ast))]
+-                (cb {:value (*eval-fn* {:source src})})))))))))
++                (cb {:value ((:*eval-fn* bound-vars) {:source src})})))))))))
+ 
+ (defn eval
+   "Evaluate a single ClojureScript form. The parameters:
+diff --git a/src/test/self/self_host/test.cljs b/src/test/self/self_host/test.cljs
+index a42e12d5..e08279eb 100644
+--- a/src/test/self/self_host/test.cljs
++++ b/src/test/self/self_host/test.cljs
+@@ -1557,6 +1557,31 @@
+                       (ex-message (ex-cause (ex-cause error)))))
+                 (inc! l)))))))))
+ 
++(deftest test-require-js
++  (async done
++    (let [st (cljs/empty-state)
++          l (latch 2 done)
++          load (fn [_ cb] (js/setTimeout #(cb {:lang :js :source ""}) 0))]
++      (cljs/eval st
++                 '(require 'bootstrap-test.js-source)
++                 {:ns     'cljs.user
++                  :target :nodejs
++                  :eval   node-eval
++                  :load   load}
++                 (fn [{:as res :keys [error]}]
++                   (is (nil? error))
++                   (inc! l)))
++      (cljs/eval-str st
++                     "(require 'bootstrap-test.js-source)"
++                     nil
++                     {:ns     'cljs.user
++                      :target :nodejs
++                      :eval   node-eval
++                      :load   load}
++                     (fn [{:as res :keys [error]}]
++                       (is (nil? error))
++                       (inc! l))))))
++
+ (defn -main [& args]
+   (run-tests))
+ 
