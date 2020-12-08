@@ -837,9 +837,9 @@
                         (filter ana/dep-has-global-exports? (:deps ast))
                         ns-name
                         (:def-emits-var opts))
-                      (cb {:value (*eval-fn* {:source (.toString sb)})})))))
+                      (cb {:value ((:*eval-fn* bound-vars) {:source (.toString sb)})})))))
               (let [src (with-out-str (comp/emit ast))]
-                (cb {:value (*eval-fn* {:source src})})))))))))
+                (cb {:value ((:*eval-fn* bound-vars) {:source src})})))))))))
 
 (defn eval
   "Evaluate a single ClojureScript form. The parameters:
