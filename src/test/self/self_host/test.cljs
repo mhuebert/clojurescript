@@ -1594,15 +1594,28 @@
 
 (deftest test-require-js
   (async done
-    (cljs/eval (cljs/empty-state)
-               '(require 'bootstrap-test.js-source)
-               {:ns     'cljs.user
-                :target :nodejs
-                :eval   #'node-eval
-                :load   (fn [_ cb] (js/setTimeout #(cb {:lang :js :source ""}) 0))}
-               (fn [{:as res :keys [error]}]
-                 (is (nil? error))
-                 (done)))))
+    (let [st (cljs/empty-state)
+          l (latch 2 done)
+          load (fn [_ cb] (js/setTimeout #(cb {:lang :js :source ""}) 0))]
+      (cljs/eval st
+                 '(require 'bootstrap-test.js-source)
+                 {:ns     'cljs.user
+                  :target :nodejs
+                  :eval   node-eval
+                  :load   load}
+                 (fn [{:as res :keys [error]}]
+                   (is (nil? error))
+                   (inc! l)))
+      (cljs/eval-str st
+                     "(require 'bootstrap-test.js-source)"
+                     nil
+                     {:ns     'cljs.user
+                      :target :nodejs
+                      :eval   node-eval
+                      :load   load}
+                     (fn [{:as res :keys [error]}]
+                       (is (nil? error))
+                       (inc! l))))))
 
 (defn -main [& args]
   (run-tests))
