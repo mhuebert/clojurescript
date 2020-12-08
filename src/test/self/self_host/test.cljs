@@ -1592,6 +1592,18 @@
                    (is (some? error))
                    (inc! l))))))
 
+(deftest test-require-js
+  (async done
+    (cljs/eval (cljs/empty-state)
+               '(require 'bootstrap-test.js-source)
+               {:ns     'cljs.user
+                :target :nodejs
+                :eval   #'node-eval
+                :load   (fn [_ cb] (js/setTimeout #(cb {:lang :js :source ""}) 0))}
+               (fn [{:as res :keys [error]}]
+                 (is (nil? error))
+                 (done)))))
+
 (defn -main [& args]
   (run-tests))
 
