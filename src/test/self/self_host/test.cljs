@@ -1557,6 +1557,25 @@
                       (ex-message (ex-cause (ex-cause error)))))
                 (inc! l)))))))))
 
+(deftest test-nested-macro-require
+  (async done
+    (let [l (latch 1 done)]
+      (let [st (cljs/empty-state)]
+        (cljs/eval-str st
+                       "(require-macros '[foo.macros :as m])(m/foo 1)"
+                       nil
+                       {:eval    node-eval
+                        :context :expr
+                        :load    (fn [{:keys [name]} cb]
+                                   (cb {:lang   :clj
+                                        :source (case name
+                                                      foo.macros "(ns foo.macros #?(:cljs (:require-macros [foo.macros-2 :as m2])))\n(defmacro foo [x] `(m2/foo x))"
+                                                      foo.macros-2 "(ns foo.macros-2)\n(defmacro foo [x] x)")}))}
+                       (fn [{:keys [error value]}]
+                         (is (nil? error))
+                         (is (= 1 value))
+                         (inc! l)))))))
+
 (defn -main [& args]
   (run-tests))
 
